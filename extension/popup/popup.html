@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Country Filter</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      color: #1f2328;
+      background: #fff;
+    }
+
+    .header {
+      padding: 14px 16px;
+      border-bottom: 1px solid #d0d7de;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header h1 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .section {
+      padding: 14px 16px;
+      border-bottom: 1px solid #d0d7de;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #636e7b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    /* 토큰 입력 */
+    .token-row {
+      display: flex;
+      gap: 6px;
+    }
+    .token-input-wrap {
+      position: relative;
+      flex: 1;
+    }
+    .token-input-wrap input {
+      width: 100%;
+      padding: 5px 28px 5px 8px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+      font-family: monospace;
+    }
+    .token-input-wrap input:focus {
+      border-color: #0969da;
+      box-shadow: 0 0 0 3px rgba(9,105,218,.1);
+    }
+    .toggle-visibility {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #636e7b;
+      padding: 0;
+      font-size: 13px;
+    }
+    .btn-save {
+      padding: 5px 12px;
+      background: #2da44e;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .btn-save:hover { background: #2c974b; }
+    .token-status {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #636e7b;
+    }
+    .token-status.ok { color: #1a7f37; }
+    .token-status.error { color: #cf222e; }
+
+    /* 필터 설정 */
+    .radio-group { display: flex; flex-direction: column; gap: 6px; }
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .radio-label input { cursor: pointer; }
+
+    .country-selector {
+      margin-top: 10px;
+      display: none;
+    }
+    .country-selector.visible { display: block; }
+
+    .country-input-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .country-input-row select {
+      flex: 1;
+      padding: 5px 8px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+    }
+    .country-input-row select:focus {
+      border-color: #0969da;
+    }
+    .btn-add {
+      padding: 5px 10px;
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn-add:hover { background: #eaf5ff; border-color: #0969da; color: #0969da; }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      min-height: 24px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      background: #ddf4ff;
+      color: #0550ae;
+      border: 1px solid #54aeff;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .tag-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #0550ae;
+      padding: 0;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    /* 캐시 */
+    .cache-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cache-info { color: #636e7b; }
+    .btn-clear {
+      padding: 4px 10px;
+      background: #fff;
+      color: #cf222e;
+      border: 1px solid #cf222e;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .btn-clear:hover { background: #fff1ee; }
+
+    .footer {
+      padding: 10px 16px;
+      text-align: center;
+      font-size: 11px;
+      color: #adb5bd;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span>🌍</span>
+    <h1>GitHub Country Filter</h1>
+  </div>
+
+  <!-- GitHub Token -->
+  <div class="section">
+    <div class="section-title">GitHub Token</div>
+    <div class="token-row">
+      <div class="token-input-wrap">
+        <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+        <button class="toggle-visibility" id="toggleVisibility">👁</button>
+      </div>
+      <button class="btn-save" id="saveToken">저장</button>
+    </div>
+    <div class="token-status" id="tokenStatus"></div>
+  </div>
+
+  <!-- 필터 설정 -->
+  <div class="section">
+    <div class="section-title">필터 설정</div>
+    <div class="radio-group">
+      <label class="radio-label">
+        <input type="radio" name="filterMode" value="all" checked /> 모든 국가 표시
+      </label>
+      <label class="radio-label">
+        <input type="radio" name="filterMode" value="include" /> 선택 국가만 표시
+      </label>
+      <label class="radio-label">
+        <input type="radio" name="filterMode" value="exclude" /> 선택 국가 제외
+      </label>
+    </div>
+
+    <div class="country-selector" id="countrySelector">
+      <div class="country-input-row">
+        <select id="countrySelect"></select>
+        <button class="btn-add" id="addCountry">추가</button>
+      </div>
+      <div class="tag-list" id="tagList"></div>
+    </div>
+  </div>
+
+  <!-- 캐시 -->
+  <div class="section">
+    <div class="section-title">캐시</div>
+    <div class="cache-row">
+      <span class="cache-info" id="cacheInfo">불러오는 중...</span>
+      <button class="btn-clear" id="clearCache">초기화</button>
+    </div>
+  </div>
+
+  <div class="footer">rate limit: 인증 시 5,000 req/h</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

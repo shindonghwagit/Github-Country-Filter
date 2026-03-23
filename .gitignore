@@ -1,0 +1,20 @@
+# 배포용 zip (레포에 올릴 필요 없음)
+*.zip
+
+# 아이콘 생성 도구 (개발용)
+extension/icons/generate_icons.html
+
+# OS 생성 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 에디터
+.vscode/
+.idea/
+*.suo
+*.user
+
+# 환경 변수
+.env
+.env.local
