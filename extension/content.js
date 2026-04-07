@@ -20,6 +20,7 @@ const COUNTRY_DISPLAY = {
 const PROCESSED_ATTR = 'data-ghcf-done';
 let filterSettings = { mode: 'all', countries: [] }; // mode: all | include | exclude
 
+
 // ─────────────────────────────────────────────
 // 설정 로드
 // ─────────────────────────────────────────────
@@ -40,17 +41,26 @@ async function loadFilterSettings() {
 function findRepoItems() {
   // GitHub 검색 결과 셀렉터 (GitHub DOM 변경에 대비해 다중 전략 사용)
   const strategies = [
-    // 최신 GitHub (2024~)
+    // 최신 GitHub (2024~) 검색 결과
     () => document.querySelectorAll('[data-testid="results-list"] > div, [data-testid="results-list"] > li'),
-    // 구 GitHub
+    // 구 GitHub 검색 결과
     () => document.querySelectorAll('.repo-list-item, .search-result-item'),
+    // 홈 피드 (팔로우한 사람의 활동)
+    () => document.querySelectorAll(
+      '[data-testid="feed-item"], .js-feed-item-component, ' +
+      '#dashboard .news li, [class*="feed"] li, [class*="dashboard"] li'
+    ),
     // 범용 fallback: /owner/repo 패턴 링크가 포함된 상위 컨테이너
     () => {
       const links = document.querySelectorAll('a[href]');
       const items = new Set();
       for (const link of links) {
         if (isRepoLink(link.getAttribute('href'))) {
-          const item = link.closest('li, article, div[class*="result"], div[class*="repo"]');
+          const item = link.closest(
+            'li, article, ' +
+            'div[class*="result"], div[class*="repo"], ' +
+            'div[class*="feed"], div[class*="news"], div[class*="activity"]'
+          );
           if (item) items.add(item);
         }
       }
