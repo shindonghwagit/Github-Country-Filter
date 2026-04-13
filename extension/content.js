@@ -169,7 +169,7 @@ async function processItems() {
     if (!target) continue;
 
     // 로딩 뱃지 먼저 표시
-    const loadingBadge = createLoadingBadge();
+    const loadingBadge = renderLoadingBadge();
     target.insertAdjacentElement('afterend', loadingBadge);
 
     // background.js에 국가 정보 요청 (레포명도 같이 전달)
@@ -179,7 +179,7 @@ async function processItems() {
 
       const { country, confidence } = response;
       const displayName = COUNTRY_DISPLAY[country] || country;
-      const badge = createBadge(country, confidence, displayName);
+      const badge = renderBadge(country, confidence, displayName);
       target.insertAdjacentElement('afterend', badge);
       console.log(`[GHCF] ${owner} → ${country} (${Math.round(confidence * 100)}%)`);
 
@@ -232,3 +232,81 @@ chrome.storage.onChanged.addListener((changes) => {
 
 // 초기 실행
 loadFilterSettings().then(scheduleProcess);
+
+function appendBadgePart(parent, className, text, ariaHidden = false) {
+  const part = document.createElement('span');
+  part.className = className;
+  part.textContent = text;
+  if (ariaHidden) part.setAttribute('aria-hidden', 'true');
+  parent.appendChild(part);
+}
+
+function countryToFlagEmoji(isoCode) {
+  if (!isoCode || isoCode === 'Unknown') return '🌐';
+  return [...isoCode.toUpperCase()]
+    .map(char => String.fromCodePoint(0x1F1E6 + char.charCodeAt(0) - 65))
+    .join('');
+}
+
+function appendFlagIcon(parent, country) {
+  const img = document.createElement('img');
+  img.className = 'ghcf-flag';
+  img.src = chrome.runtime.getURL(`flags/${country}.svg`);
+  img.alt = '';
+  img.width = 14;
+  img.height = 10;
+  img.decoding = 'async';
+  img.setAttribute('aria-hidden', 'true');
+  img.addEventListener('error', () => {
+    img.replaceWith(createFlagFallback(country));
+  }, { once: true });
+  parent.appendChild(img);
+}
+
+function createFlagFallback(country) {
+  const fallback = document.createElement('span');
+  fallback.className = 'ghcf-flag ghcf-flag--fallback';
+  fallback.textContent = countryToFlagEmoji(country);
+  fallback.setAttribute('aria-hidden', 'true');
+  return fallback;
+}
+
+function renderBadge(country, confidence, displayName) {
+  const badge = document.createElement('span');
+  badge.className = 'ghcf-badge';
+  badge.setAttribute('data-ghcf-country', country);
+
+  if (country === 'Unknown') {
+    badge.classList.add('ghcf-badge--unknown');
+    badge.title = 'Country could not be detected';
+    badge.appendChild(createFlagFallback(country));
+    appendBadgePart(badge, 'ghcf-label', 'Unknown');
+    return badge;
+  }
+
+  const confidencePercent = Math.round(confidence * 100);
+  const isCertain = confidence >= 0.75;
+
+  badge.classList.add(isCertain ? 'ghcf-badge--certain' : 'ghcf-badge--guess');
+  badge.title = isCertain
+    ? `Country: ${displayName} (${confidencePercent}% confidence)`
+    : `Country: ${displayName} (estimated, ${confidencePercent}% confidence)`;
+
+  appendFlagIcon(badge, country);
+  appendBadgePart(badge, 'ghcf-label', displayName);
+  appendBadgePart(badge, 'ghcf-code', country, true);
+
+  if (!isCertain) {
+    appendBadgePart(badge, 'ghcf-meta', 'Est.', true);
+  }
+
+  return badge;
+}
+
+function renderLoadingBadge() {
+  const badge = document.createElement('span');
+  badge.className = 'ghcf-badge ghcf-badge--loading';
+  badge.title = 'Detecting country';
+  appendBadgePart(badge, 'ghcf-label', 'Detecting');
+  return badge;
+}
