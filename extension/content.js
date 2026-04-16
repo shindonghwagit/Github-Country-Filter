@@ -177,11 +177,13 @@ async function processItems() {
       loadingBadge.remove();
       if (!response || response.error) return;
 
-      const { country, confidence } = response;
+      const { country, confidence, reasons = [] } = response;
       const displayName = COUNTRY_DISPLAY[country] || country;
-      const badge = renderBadge(country, confidence, displayName);
+      const badge = renderBadge(country, confidence, displayName, reasons);
       target.insertAdjacentElement('afterend', badge);
-      console.log(`[GHCF] ${owner} → ${country} (${Math.round(confidence * 100)}%)`);
+      const reasonSummary = formatReasonSummary(reasons);
+      const logSuffix = reasonSummary ? ` | reasons: ${reasonSummary}` : '';
+      console.log(`[GHCF] ${owner} → ${country} (${Math.round(confidence * 100)}%)${logSuffix}`);
 
 
       // 필터 적용
@@ -271,16 +273,60 @@ function createFlagFallback(country) {
   return fallback;
 }
 
-function renderBadge(country, confidence, displayName) {
+function getReasonItems(reasons) {
+  if (!Array.isArray(reasons)) return [];
+  return reasons.filter(reason => reason && typeof reason.text === 'string' && reason.text.trim());
+}
+
+function formatReasonSummary(reasons) {
+  return getReasonItems(reasons)
+    .slice(0, 3)
+    .map(reason => reason.text)
+    .join(' | ');
+}
+
+function createReasonPanel(reasons) {
+  const items = getReasonItems(reasons).slice(0, 3);
+  if (items.length === 0) return null;
+
+  const panel = document.createElement('span');
+  panel.className = 'ghcf-reason';
+  panel.setAttribute('aria-hidden', 'true');
+
+  const title = document.createElement('span');
+  title.className = 'ghcf-reason-title';
+  title.textContent = 'Why this country';
+  panel.appendChild(title);
+
+  for (const reason of items) {
+    const item = document.createElement('span');
+    item.className = 'ghcf-reason-item';
+    item.textContent = reason.text;
+    panel.appendChild(item);
+  }
+
+  return panel;
+}
+
+function renderBadge(country, confidence, displayName, reasons = []) {
   const badge = document.createElement('span');
   badge.className = 'ghcf-badge';
   badge.setAttribute('data-ghcf-country', country);
+  const reasonSummary = formatReasonSummary(reasons);
+  const reasonPanel = createReasonPanel(reasons);
 
   if (country === 'Unknown') {
     badge.classList.add('ghcf-badge--unknown');
-    badge.title = 'Country could not be detected';
+    badge.title = reasonSummary
+      ? `Country could not be detected | Reasons: ${reasonSummary}`
+      : 'Country could not be detected';
     badge.appendChild(createFlagFallback(country));
     appendBadgePart(badge, 'ghcf-label', 'Unknown');
+    if (reasonPanel) {
+      badge.classList.add('ghcf-badge--interactive');
+      badge.tabIndex = 0;
+      badge.appendChild(reasonPanel);
+    }
     return badge;
   }
 
@@ -292,12 +338,22 @@ function renderBadge(country, confidence, displayName) {
     ? `Country: ${displayName} (${confidencePercent}% confidence)`
     : `Country: ${displayName} (estimated, ${confidencePercent}% confidence)`;
 
+  if (reasonSummary) {
+    badge.title += ` | Reasons: ${reasonSummary}`;
+  }
+
   appendFlagIcon(badge, country);
   appendBadgePart(badge, 'ghcf-label', displayName);
   appendBadgePart(badge, 'ghcf-code', country, true);
 
   if (!isCertain) {
     appendBadgePart(badge, 'ghcf-meta', 'Est.', true);
+  }
+
+  if (reasonPanel) {
+    badge.classList.add('ghcf-badge--interactive');
+    badge.tabIndex = 0;
+    badge.appendChild(reasonPanel);
   }
 
   return badge;

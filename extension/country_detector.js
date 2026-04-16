@@ -328,6 +328,14 @@ export const COUNTRY_DISPLAY = {
 // 감지 함수들
 // ─────────────────────────────────────────────
 
+function createSignal(country, confidence, source, reason) {
+  return { country, confidence, source, reason };
+}
+
+function quoteValue(value) {
+  return `"${String(value).trim()}"`;
+}
+
 function parseLocation(location) {
   if (!location) return [];
 
@@ -337,16 +345,29 @@ function parseLocation(location) {
   const JUNK = ['earth', 'remote', 'internet', 'worldwide', 'global', 'everywhere', 'world', 'online', 'universe', 'home'];
   if (JUNK.some(j => normalized === j)) return [];
 
-  const found = new Map(); // country → highest confidence
+  const found = new Map(); // country -> strongest location signal
+
+  const remember = (country, confidence, reason) => {
+    const prev = found.get(country);
+    if (!prev || confidence > prev.confidence) {
+      found.set(country, { confidence, reason });
+    }
+  };
 
   const tryMatch = (text, confidence) => {
     if (COUNTRY_MAP[text]) {
-      const prev = found.get(COUNTRY_MAP[text]) || 0;
-      if (confidence > prev) found.set(COUNTRY_MAP[text], confidence);
+      remember(
+        COUNTRY_MAP[text],
+        confidence,
+        `location matches country keyword ${quoteValue(text)}`
+      );
     }
     if (CITY_MAP[text]) {
-      const prev = found.get(CITY_MAP[text]) || 0;
-      if (confidence > prev) found.set(CITY_MAP[text], confidence - 0.05);
+      remember(
+        CITY_MAP[text],
+        confidence - 0.05,
+        `location mentions city keyword ${quoteValue(text)}`
+      );
     }
   };
 
@@ -362,18 +383,18 @@ function parseLocation(location) {
   // 3. 부분 포함 검사 (Seoul, South Korea 같은 복합 지명)
   for (const [key, code] of Object.entries(COUNTRY_MAP)) {
     if (normalized.includes(key) && !found.has(code)) {
-      found.set(code, 0.88);
+      remember(code, 0.88, `location contains country keyword ${quoteValue(key)}`);
     }
   }
   for (const [key, code] of Object.entries(CITY_MAP)) {
     if (normalized.includes(key) && !found.has(code)) {
-      found.set(code, 0.83);
+      remember(code, 0.83, `location contains city keyword ${quoteValue(key)}`);
     }
   }
 
-  return [...found.entries()].map(([country, confidence]) => ({
-    country, confidence, source: 'location'
-  }));
+  return [...found.entries()].map(([country, details]) =>
+    createSignal(country, details.confidence, 'location', details.reason)
+  );
 }
 
 function analyzeBlogUrl(blog) {
@@ -385,7 +406,14 @@ function analyzeBlogUrl(blog) {
     // 알려진 플랫폼
     for (const [platform, code] of Object.entries(PLATFORM_MAP)) {
       if (hostname.endsWith(platform)) {
-        return [{ country: code, confidence: 0.85, source: 'blog_platform' }];
+        return [
+          createSignal(
+            code,
+            0.85,
+            'blog_platform',
+            `blog URL uses regional platform ${quoteValue(platform)}`
+          ),
+        ];
       }
     }
 
@@ -393,7 +421,14 @@ function analyzeBlogUrl(blog) {
     const sortedTlds = Object.keys(TLD_MAP).sort((a, b) => b.length - a.length);
     for (const tld of sortedTlds) {
       if (hostname.endsWith(tld)) {
-        return [{ country: TLD_MAP[tld], confidence: 0.80, source: 'blog_tld' }];
+        return [
+          createSignal(
+            TLD_MAP[tld],
+            0.80,
+            'blog_tld',
+            `blog URL ends with country TLD ${quoteValue(tld)}`
+          ),
+        ];
       }
     }
   } catch {
@@ -407,24 +442,31 @@ function analyzeCompany(company) {
   const normalized = company.toLowerCase().replace(/[@\s]/g, '');
   for (const [name, code] of Object.entries(COMPANY_MAP)) {
     if (normalized.includes(name)) {
-      return [{ country: code, confidence: 0.70, source: 'company' }];
+      return [
+        createSignal(
+          code,
+          0.70,
+          'company',
+          `company field includes ${quoteValue(name)}`
+        ),
+      ];
     }
   }
   return [];
 }
 
-function analyzeCharset(text) {
+function analyzeCharset(text, contextLabel = 'text') {
   if (!text) return [];
   const signals = [];
 
   // 한글 (한국어) — 매우 확실
   if (/[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(text)) {
-    signals.push({ country: 'KR', confidence: 0.95, source: 'charset_hangul' });
+    signals.push(createSignal('KR', 0.95, 'charset_hangul', `${contextLabel} contains Hangul`));
   }
 
   // 히라가나/가타카나 (일본어) — 매우 확실
   if (/[\u3040-\u309F\u30A0-\u30FF]/.test(text)) {
-    signals.push({ country: 'JP', confidence: 0.95, source: 'charset_kana' });
+    signals.push(createSignal('JP', 0.95, 'charset_kana', `${contextLabel} contains Kana`));
   }
 
   // CJK 한자만 있고 한글/가나 없을 때 → 중국어 가능성
@@ -432,32 +474,32 @@ function analyzeCharset(text) {
   const hasKorean = signals.some(s => s.country === 'KR');
   const hasJapanese = signals.some(s => s.country === 'JP');
   if (hasCJK && !hasKorean && !hasJapanese) {
-    signals.push({ country: 'CN', confidence: 0.70, source: 'charset_cjk' });
+    signals.push(createSignal('CN', 0.70, 'charset_cjk', `${contextLabel} contains CJK ideographs`));
   }
 
   // 키릴 문자 (러시아/동유럽)
   if (/[\u0400-\u04FF]/.test(text)) {
-    signals.push({ country: 'RU', confidence: 0.75, source: 'charset_cyrillic' });
+    signals.push(createSignal('RU', 0.75, 'charset_cyrillic', `${contextLabel} contains Cyrillic`));
   }
 
   // 데바나가리 (힌디/인도어)
   if (/[\u0900-\u097F]/.test(text)) {
-    signals.push({ country: 'IN', confidence: 0.90, source: 'charset_devanagari' });
+    signals.push(createSignal('IN', 0.90, 'charset_devanagari', `${contextLabel} contains Devanagari`));
   }
 
   // 태국 문자
   if (/[\u0E00-\u0E7F]/.test(text)) {
-    signals.push({ country: 'TH', confidence: 0.95, source: 'charset_thai' });
+    signals.push(createSignal('TH', 0.95, 'charset_thai', `${contextLabel} contains Thai script`));
   }
 
   // 히브리 문자
   if (/[\u0590-\u05FF]/.test(text)) {
-    signals.push({ country: 'IL', confidence: 0.85, source: 'charset_hebrew' });
+    signals.push(createSignal('IL', 0.85, 'charset_hebrew', `${contextLabel} contains Hebrew`));
   }
 
   // 아랍 문자
   if (/[\u0600-\u06FF]/.test(text)) {
-    signals.push({ country: 'AE', confidence: 0.60, source: 'charset_arabic' });
+    signals.push(createSignal('AE', 0.60, 'charset_arabic', `${contextLabel} contains Arabic script`));
   }
 
   return signals;
@@ -471,7 +513,7 @@ function analyzeTextLanguage(texts) {
   const signals = [];
 
   // 문자셋 기반 분석으로 대부분 커버
-  const charsetSignals = analyzeCharset(combined);
+  const charsetSignals = analyzeCharset(combined, 'bio / README / recent commits');
   signals.push(...charsetSignals);
 
   // 라틴 문자로만 이루어진 텍스트는 국가 특정 어려움
@@ -493,7 +535,7 @@ function analyzeTextLanguage(texts) {
 
 function aggregateSignals(signals) {
   if (signals.length === 0) {
-    return { country: 'Unknown', confidence: 0, sources: [] };
+    return { country: 'Unknown', confidence: 0, sources: [], reasons: [] };
   }
 
   const scores = {};
@@ -506,10 +548,25 @@ function aggregateSignals(signals) {
   const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
   const normalizedConfidence = topScore / totalScore;
 
+  const reasons = signals
+    .filter(signal => signal.country === topCountry)
+    .sort((a, b) => b.confidence - a.confidence)
+    .reduce((items, signal) => {
+      if (!items.some(item => item.text === signal.reason)) {
+        items.push({
+          source: signal.source,
+          confidence: signal.confidence,
+          text: signal.reason,
+        });
+      }
+      return items;
+    }, []);
+
   return {
     country: topCountry,
     confidence: Math.min(normalizedConfidence, 1.0),
     sources: signals.map(s => s.source),
+    reasons,
   };
 }
 
@@ -531,7 +588,7 @@ export function detectCountry(userData) {
 
   // Stage 4: 이름 + bio 문자셋 분석
   const nameAndBio = [userData.name, userData.bio].filter(Boolean).join(' ');
-  signals.push(...analyzeCharset(nameAndBio));
+  signals.push(...analyzeCharset(nameAndBio, 'name / bio'));
 
   // Stage 5: 커밋 메시지 + bio + README 언어 분석
   const texts = [
