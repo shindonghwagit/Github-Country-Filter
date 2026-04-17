@@ -1,4 +1,11 @@
 .ghcf-badge {
+  --ghcf-popover-bg: var(--overlay-bgColor, var(--bgColor-default, #ffffff));
+  --ghcf-popover-bg-alt: var(--bgColor-muted, #f6f8fa);
+  --ghcf-popover-border: var(--borderColor-default, #d1d9e0);
+  --ghcf-popover-text: var(--fgColor-default, #1f2328);
+  --ghcf-popover-title: var(--fgColor-muted, #59636e);
+  --ghcf-popover-accent: var(--fgColor-accent, #0969da);
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -19,6 +26,29 @@
   text-decoration: none !important;
   box-sizing: border-box;
   box-shadow: var(--button-default-shadow-resting, 0 1px 0 rgba(31, 35, 40, 0.04));
+  transform-origin: left center;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease;
+  overflow: visible;
+  z-index: 0;
+}
+
+.ghcf-badge--interactive:hover,
+.ghcf-badge--interactive:focus-visible {
+  transform: scale(1.06);
+  border-color: var(--borderColor-accent-emphasis, var(--borderColor-default, #d1d9e0));
+  box-shadow:
+    0 10px 22px rgba(31, 35, 40, 0.12),
+    0 1px 0 rgba(31, 35, 40, 0.04);
+  z-index: 20;
+}
+
+.ghcf-badge--interactive:focus-visible {
+  outline: 2px solid var(--focus-outlineColor, #0969da);
+  outline-offset: 2px;
 }
 
 .ghcf-flag {
@@ -57,6 +87,84 @@
 
 .ghcf-meta {
   font-weight: 500;
+}
+
+.ghcf-reason {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--ghcf-popover-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, var(--ghcf-popover-bg), var(--ghcf-popover-bg-alt));
+  color: var(--ghcf-popover-text);
+  box-shadow:
+    0 16px 40px rgba(31, 35, 40, 0.14),
+    0 1px 0 rgba(31, 35, 40, 0.04);
+  white-space: normal;
+  line-height: 1.45;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px) scale(0.98);
+  transform-origin: top left;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease,
+    visibility 0.16s ease;
+  pointer-events: auto;
+}
+
+.ghcf-reason::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 16px;
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid var(--ghcf-popover-border);
+  border-left: 1px solid var(--ghcf-popover-border);
+  background: var(--ghcf-popover-bg);
+  transform: rotate(45deg);
+}
+
+.ghcf-badge--interactive:hover .ghcf-reason,
+.ghcf-badge--interactive:focus-visible .ghcf-reason {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.ghcf-reason-title {
+  display: block;
+  color: var(--ghcf-popover-title);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ghcf-reason-item {
+  display: block;
+  position: relative;
+  padding-left: 12px;
+  font-size: 12px;
+  color: var(--ghcf-popover-text);
+}
+
+.ghcf-reason-item::before {
+  content: '';
+  position: absolute;
+  top: 0.55em;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--ghcf-popover-accent);
 }
 
 .ghcf-badge--certain .ghcf-code {

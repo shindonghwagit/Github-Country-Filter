@@ -13,6 +13,7 @@ async function getFromCache(username) {
   const entry = cache[username];
   if (!entry) return null;
   if (Date.now() - entry.timestamp > CACHE_TTL_MS) return null;
+  if (!Array.isArray(entry.result?.reasons)) return null;
   return entry.result;
 }
 
