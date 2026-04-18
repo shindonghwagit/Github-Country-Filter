@@ -1,25 +1,51 @@
 # GitHub Country Filter
 
-GitHub 검색 결과 및 홈 피드를 국가별로 필터링할 수 있는 Chrome 익스텐션
+<p align="center">
+  <img src="./extension/icons/icon128.png" alt="GitHub Country Filter Logo" width="128"/>
+</p>
+
+<p align="center">
+  GitHub 검색 결과 및 홈 피드를 국가별로 필터링할 수 있는 Chrome 익스텐션
+</p>
+
+---
+
+## 실행 화면
+
+<p align="center">
+  <img src="./extension/docs/modal.png" alt="Modal UI" width="200"/>
+</p>
+
+<p align="center">
+  <img src="./extension/docs/top repositories.png" alt="팝업 UI" width="300"/>
+</p>
+<p align="center">
+  <img src="./extension/docs/research.png" alt="팝업 UI" width="800"/>
+</p>
 
 ---
 
 ## 프로젝트 개요
 
-GitHub에서 레포지토리를 검색하거나 팔로우한 사람의 피드를 볼 때, **어느 나라 개발자의 프로젝트인지 한눈에 확인하고 필터링**할 수 있습니다.  
+GitHub에서 레포지토리를 검색하거나 팔로우한 사람의 피드를 볼 때, **어느 나라 개발자의 프로젝트인지 한눈에 확인하고 필터링**할 수 있습니다.
 레포 owner의 `location` 정보를 분석하고, 없는 경우 이름 문자셋 / 블로그 URL / 커밋 메시지 언어 등으로 국가를 추측합니다.
 
 ---
 
 ## 주요 기능
 
-- **국가 뱃지 표시** — 검색 결과 및 홈 피드 레포에 국가 뱃지 자동 주입
+- **국가 뱃지 표시** — 검색 결과 및 홈 피드 레포에 국기 아이콘과 함께 국가 뱃지 자동 주입
+- **국가 추측 이유 호버 카드** — 뱃지에 마우스를 올리면 어떤 기준으로 국가를 감지했는지 표시
 - **홈 피드 지원** — 팔로우한 사람의 활동 피드에서도 동작
 - **국가 필터링** — 원하는 국가만 보기 / 특정 국가 제외
+- **테마 자동 감지** — GitHub의 라이트 / 다크 모드에 따라 팝업 UI 색상 자동 전환
 - **국가 추측 로직** — `location` 미입력 유저도 다음 기준으로 추측
-  - 프로필 location 텍스트 파싱 (도시명 포함)
-  - 블로그 URL의 ccTLD 및 플랫폼 분석 (예: `.kr`, `velog.io` → 한국)
-  - 이름 / bio 문자셋 분석 (한글 → 한국, 히라가나 → 일본 등)
+
+- 프로필 location 텍스트 파싱 (도시명 포함)
+
+- 블로그 URL의 ccTLD 및 플랫폼 분석 (예: `.kr`, `velog.io` → 한국)
+
+- 이름 / bio 문자셋 분석 (한글 → 한국, 히라가나 → 일본 등)
   - 최근 커밋 메시지 및 README 언어 감지
   - 회사명 매핑 (예: 카카오, 네이버 → 한국)
 
@@ -73,7 +99,7 @@ github-country-filter/
 
 ### Chrome Web Store
 
-[Chrome Web Store에서 설치](#) ← 링크 추가 예정
+[Chrome Web Store에서 설치](https://chromewebstore.google.com/detail/github-country-filter/pilfmmonfopopamnnhphnmdmpddamhgp?hl=ko)
 
 ### 개발 모드 (로컬)
 

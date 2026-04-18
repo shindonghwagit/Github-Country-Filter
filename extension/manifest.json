@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GitHub Country Filter",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "GitHub 검색 결과에 국가 정보를 표시하고 필터링합니다",
   "permissions": ["storage"],
   "host_permissions": [
